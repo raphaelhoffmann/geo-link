@@ -2,7 +2,7 @@
 
 
 [Tutorial 1: Entity Linking for Locations](TUTORIAL1.md)
-Learn how to identify mentions of locations in news articles and unambiguously link them to entities in Wikidata.
+Learn how to identify mentions of locations in news articles and unambiguously link them to entities in Wikidata. [DDLOG version](TUTORIAL1_ddlog.md)
 
 [Tutorial 2: Coreference Resolution within Documents](TUTORIAL2.md)
 Learn how to cluster mentions of the same entity within a document without the need for an entity database.
