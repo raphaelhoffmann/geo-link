@@ -2,6 +2,7 @@
 export DEEPDIVE_HOME=`pwd`/../deepdive
 export APP_HOME=`pwd`
 export MEMORY="8g"
+export INPUT_BATCH_SIZE=10000
 export PARALLELISM=4
 export DBNAME="geo"
 export PGHOST="localhost"
