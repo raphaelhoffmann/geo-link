@@ -12,7 +12,7 @@ BASE_DIR = os.path.realpath(BASE_DIR + "/..")
 Loc = collections.namedtuple('Loc', ['item_id', 'name'])
 
 loc_ids_set = set()
-with open(BASE_DIR + "/data/wikidata/transitive.tsv", 'rt') as transitive_file:
+with open(BASE_DIR + "/input/transitive.tsv", 'rt') as transitive_file:
     print('loading transitive.tsv', file=sys.stderr)
     for line in transitive_file:
         cols = line.split('\t')
@@ -24,7 +24,7 @@ with open(BASE_DIR + "/data/wikidata/transitive.tsv", 'rt') as transitive_file:
 
 
 cities_dict = dict()
-with open(BASE_DIR + "/data/wikidata/names.tsv", 'rt') as cities_file:
+with open(BASE_DIR + "/input/names.tsv", 'rt') as cities_file:
     print('loading names.tsv', file=sys.stderr)
     for line in cities_file:
         cols = line.split('\t')
@@ -100,8 +100,8 @@ def generate_candidates(doc_id, sent_id, words, poses, phrases):
             #    if m.country_code == 'US' and m == loc:
             #        true_str = '1'
 
-            print('\t'.join(['\\N', mention_id, str(doc_id), str(sent_id), str(mention_num), mention_str, str(phrase[0]), str(phrase[1]), str(loc.item_id), '\\N', features_str ]))
-            #print('\t'.join(['\\N', mention_id, str(doc_id), str(sent_id), str(mention_num), mention_str, str(phrase[0]), str(phrase[1]), str(loc.item_id), true_str, features_str ]))
+            print('\t'.join([ mention_id, str(doc_id), str(sent_id), str(mention_num), mention_str, str(phrase[0]), str(phrase[1]), str(loc.item_id), '\\N', features_str ]))
+            #print('\t'.join([ mention_id, str(doc_id), str(sent_id), str(mention_num), mention_str, str(phrase[0]), str(phrase[1]), str(loc.item_id), true_str, features_str ]))
 
         mention_num += 1
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         for line in input_files:
             #print(line, file=sys.stderr)
             doc_id, sent_id, words_str, poses_str = line.split('\t')
-            words = words_str.split(' ')
-            poses = poses_str.split(' ')
+            words = words_str.split('~^~')
+            poses = poses_str.split('~^~')
             phrases = generate_nnp_phrases(words, poses)
             generate_candidates(doc_id, sent_id, words, poses, phrases)
