@@ -1,0 +1,178 @@
+articles(
+  @key 
+  id int,
+  @searchable
+  body text,
+  @searchable
+  title text
+).
+
+@source
+sentences(
+  document_id  int,    # which document it comes from
+  sentence_offset int, # which sentence (0, 1, 2...) is it in document
+  sentence     text,      # sentence content
+  words        text[],    # array of words in this sentence
+  lemma        text[],    # array of lemmatized words
+  pos_tags     text[],    # array of part-of-speech tags
+  ner_tags     text[],    # array of named entity tags (PERSON, LOCATION, etc)
+  char_offsets int[],   # array of character offsets (begin)
+  dep_labels text[],    # array of dependency labels
+  dep_parents int[],  
+  sentence_id  text       # unique identifier for sentences
+  ).
+
+wikidata_names (
+        item_id int,
+        language text,
+        label text,
+        name text
+).
+
+wikidata_instanceof (
+        item_id int,
+        clazz_id int
+).
+
+wikidata_coordinate_locations (
+        item_id int,
+        latitude float,
+        longitude float
+).
+
+context_features (
+        sentence_id text,
+        mention_num int,
+        features text[]
+).
+
+@extraction
+locations (        
+        @key
+        mention_id text,
+        document_id text,
+        @references(relation="sentences", column="sentence_id")
+        sentence_id text,
+        mention_num int,
+        mention_str text,
+        @textspan_start()
+        w_from int,
+        w_to int,
+        loc_id int,
+        is_correct boolean,
+        features text[]
+).
+
+v_mentions(
+  sentence_id text,
+  mention_num int,
+  w_from int,
+  w_to int
+).
+
+link?(
+  mention_id text).
+
+# process the text
+#function extract_preprocess over (id int, body text)
+#                returns rows like sentences
+#  implementation "../deepdive/examples/nlp_extractor/run.sh -k id -v body -l 100 -t 1 -a tokenize,ssplit,pos" handles json lines.
+
+#sentences += 
+#  extract_preprocess(id, body) :-
+#  articles(id, body, _).
+
+# extract pairs
+function extract_pairs over (document_id int, sentence_id text, words text, pos_tags text)
+               returns rows like locations
+  implementation "udf/extract_pairs.py" handles tsv lines.
+
+locations += 
+  extract_pairs(doc_id, id, ARRAY_TO_STRING(words, "~^~"), ARRAY_TO_STRING(pos_tags, "~^~")) :-
+  sentences(doc_id, _, _, words, _, pos_tags, _, _, _, _, id).
+
+# extract context features
+function extract_context_features over (sentence_id text, mention_num int, w_from int, w_to int, words text, pos_tags text)
+              returns rows like context_features
+   implementation "udf/extract_context_features.py" handles tsv lines.
+
+context_features +=
+  extract_context_features(sentence_id, mention_num, w_from, w_to, ARRAY_TO_STRING(words, "~^~"), ARRAY_TO_STRING(pos_tags, "~^~")) :-
+  sentences(_, _, _, words, _, pos_tags, _, _, _, _, sentence_id),
+  v_mentions(sentence_id, mention_num, w_from, w_to).
+
+# TODO supervise (not sure if this helps) 
+#function supervise over (document_id int, sentence text, words, )
+#                return rows like locations
+#  implementataion "supervise_locations.py.save" handles tsv lines.
+
+#locations += 
+#  supervise(mention_id, sent_id, mention_num, mention_str, w_from, w_to, loc_id) :-
+#  locations(mention_id, sent_id, mention_num, mention_str, w_from, w_to, loc_id, _, _)
+
+#label
+@label(is_true)
+link(mid) :- locations(mid, _, _, _, _, _, _, _, is_true, _).
+
+# negative_bias
+@weight(-1)
+link(mid) :-
+  locations(mid, _, _, _, _, _, _, _, _, _).
+  
+# one_of_n_features
+# TODO: what if the entity doesn't exist in the KB
+@weight(-10)
+link(mid1) ^ link(mid2) :-
+  locations(mid1, _, sentence_id, mention_num, _, _, _, _, _, _),
+  locations(mid2, _, sentence_id, mention_num, _, _, _, _, _, _).
+
+# prefer if subsequently mentioned cities are within 1000km distance
+# consecutive_in_proximity
+@weight(3)
+link(mid1) ^ link(mid2) :-
+  locations(mid1, doc_id, _, _, _, _, _, loc_id1, _, _),
+  locations(mid2, doc_id, _, _, _, _, _, loc_id2, _, _),
+  wikidata_coordinate_locations(loc_id1, lat1, lon1),
+  wikidata_coordinate_locations(loc_id2, lat2, lon2),
+  [earth_distance(ll_to_earth(lat1,lon1), ll_to_earth(lat2,lon2)) < 1000].
+
+# penalize same word mapped to different location
+# same_to_same
+@weight(-3)
+link(mid1) ^ link(mid2) :-
+  locations(mid1, doc_id, _, mention_num1, mention_str, _, _, loc1, _, _),
+  locations(mid2, doc_id, _, mention_num2, mention_str, _, _, loc2, _, _).
+
+# prefer larger cities
+@weight(2)
+link(mid) :- 
+  locations(mid, _, _, _, _, _, _, loc_id, _, _),
+  wikidata_instanceof(loc_id, 515).
+
+# x00M population
+@weight(2)
+link(mid) :- 
+  locations(mid, _, _, _, _, _, _, loc_id, _, _),
+  wikidata_instanceof(loc_id, 1549591).
+
+# xM population
+@weight(2)
+link(mid) :- 
+  locations(mid, _, _, _, _, _, _, loc_id, _, _),
+  wikidata_instanceof(loc_id, 1637706).
+
+# boost_countries
+@weight(5)
+link(mid) :- 
+  locations(mid, _, _, _, _, _, _, loc_id, _, _),
+  wikidata_instanceof(loc_id, 6256).
+
+#context features
+@weight(f)
+link(mid) :-
+  locations(_, _, sentence_id, mention_num, _, _, _, loc_id, _, _),
+  context_features(sentence_id, mention_num, f).
+
+
+
+

@@ -10,13 +10,26 @@ import re
 import json
 import csv
 import os.path
+import urllib.request
 
 BASE_DIR, throwaway = os.path.split(os.path.realpath(__file__))
 BASE_DIR = os.path.realpath(BASE_DIR + "/..")
 DATA_DIR = BASE_DIR + '/data'
 
+def get_latest_dump_name():
+    with urllib.request.urlopen('http://dumps.wikimedia.org/other/wikidata/') as f:
+        for line in f:
+            html = str(line, encoding='utf-8')
+            if 'href' not in html:
+                continue
+            start_idx = html.index('>')+1
+            end_idx = html.index('<', start_idx)
+            name = html[start_idx:end_idx]
+        return name
+
 def download_wikidata():
-    DOWNLOAD_URL = ('http://dumps.wikimedia.org/other/wikidata/20150330.json.gz')
+    dump_name = get_latest_dump_name()
+    DOWNLOAD_URL = ('http://dumps.wikimedia.org/other/wikidata/'+dump_name)
     ARCHIVE_FILENAME = 'dump.json.gz'
     data_path = os.path.join(DATA_DIR, "wikidata")
     archive_path = os.path.join(data_path, ARCHIVE_FILENAME)

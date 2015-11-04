@@ -63,7 +63,7 @@ def get_items(sel, clazz, w):
                 print(str(id1) + '\t' + str(clazz), file=w)
                 last = id1
 
-with open(DATA_DIR + '/wikidata/transitive.tsv', 'w') as w:
+with open(BASE_DIR + '/input/transitive.tsv', 'w') as w:
     build_map()
     # compute transitive closure for each class
     for clazz in clazzes:

@@ -26,7 +26,7 @@ def parse_json(line,w):
                 print(id + '\t' + lang + '\t' + 'alias' + '\t' + alias.replace('\t', ' ').replace('\n', ' '), file=w)
 
 
-with open(DATA_DIR + '/wikidata/dump.json', 'r') as f, open(DATA_DIR + '/wikidata/names.tsv', 'w') as w:
+with open(DATA_DIR + '/wikidata/dump.json', 'r') as f, open(BASE_DIR + '/input/names.tsv', 'w') as w:
     for line in f:
         line = line.rstrip()
         if line == '[' or line == ']':

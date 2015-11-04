@@ -28,7 +28,7 @@ def parse_json(line, w):
         except KeyError:
           print('ignoring keyerror', file=sys.stderr) 
 
-with open(DATA_DIR + '/wikidata/dump.json', 'r') as f, open(DATA_DIR + '/wikidata/coordinate-locations.tsv', 'w') as w:
+with open(DATA_DIR + '/wikidata/dump.json', 'r') as f, open(BASE_DIR + '/input/coordinate-locations.tsv', 'w') as w:
     for line in f:
         line = line.rstrip()
         if line == '[' or line == ']':

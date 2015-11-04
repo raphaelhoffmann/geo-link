@@ -121,7 +121,8 @@ def json_to_csv():
         tsvout = csv.writer(tsvout)
         for line in jsonin:
             obj = json.loads(line)
-            tsvout.writerow([obj['id'], obj['body'], obj['title']])
+            if obj['body']:
+                tsvout.writerow([obj['id'], obj['body'].replace('\x7F', ''), obj['title']])
     print("saved output as %s" % out_path)
 
 
